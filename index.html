@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Rota requests</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2430;--muted:#5b6675;--line:#d6dbe3;--brand:#1f3864;--brand-ink:#fff;--ok:#1b7a3e;--warn:#9a5b00;--bad:#b3261e;--focus:#2b6cff}
+@media (prefers-color-scheme:dark){:root{--bg:#10151c;--card:#18202b;--ink:#e8edf4;--muted:#a3afbf;--line:#2c3746;--brand:#6f94e6;--brand-ink:#0b1220;--ok:#5ad08a;--warn:#f0b254;--bad:#ff8a80;--focus:#8fb0ff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+header{background:var(--brand);color:var(--brand-ink);padding:16px}
+header h1{margin:0;font-size:1.15rem}
+header p{margin:2px 0 0;font-size:.9rem;opacity:.9}
+main{max-width:720px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 16px}
+h2{font-size:1.1rem;margin:0 0 8px}
+label{display:block;font-weight:600;margin:14px 0 4px}
+.hint{font-weight:400;color:var(--muted);font-size:.88rem}
+input[type=text],input[type=date],input[type=time],select,textarea{width:100%;font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;min-height:44px}
+textarea{min-height:96px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible,summary:focus-visible{outline:3px solid var(--focus);outline-offset:1px}
+.days{display:flex;flex-wrap:wrap;gap:8px}
+.days label{display:flex;align-items:center;gap:6px;margin:0;font-weight:500;border:1px solid var(--line);border-radius:8px;padding:8px 12px;min-height:44px;cursor:pointer}
+button{font:inherit;border:0;border-radius:8px;padding:12px 18px;min-height:44px;cursor:pointer;background:var(--brand);color:var(--brand-ink);font-weight:600}
+button.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.55;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tabs{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.tabs button[aria-selected=true]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.msg{border-radius:8px;padding:12px;margin:12px 0;border:1px solid var(--line)}
+.msg.ok{border-color:var(--ok)}.msg.warn{border-color:var(--warn)}.msg.bad{border-color:var(--bad)}
+.err{color:var(--bad);font-size:.9rem;margin-top:4px}
+.req{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-size:.8rem}
+.hidden{display:none!important}
+small{color:var(--muted)}
+details summary{cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <h1>Rosie Nightingale Homecare</h1>
+  <p>Rota requests</p>
+</header>
+<main>
+  <div id="banner" class="msg warn hidden" role="status"></div>
+
+  <section id="signin" class="card">
+    <h2>Sign in</h2>
+    <p>Sign in with your Google account so we know who the request is from. We only use your email address to check who you are.</p>
+    <div id="gbtn"></div>
+    <p><small>Never type names, addresses or health details into this form. Use the service-user ID.</small></p>
+    <p id="demo-note" class="hidden"><small>Preview mode: nothing is sent.</small> <button id="demo-go" class="secondary" type="button">Continue in preview</button></p>
+  </section>
+
+  <section id="app" class="hidden">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <div><strong id="who"></strong><br><small id="role"></small></div>
+      <button id="signout" class="secondary" type="button">Sign out</button>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-new" aria-selected="true" type="button">New request</button>
+      <button role="tab" id="tab-mine" aria-selected="false" type="button">My requests</button>
+    </div>
+
+    <div id="pane-new">
+      <div class="card" id="kind-card">
+        <h2>What is this request about?</h2>
+        <div class="row" id="kind-row"></div>
+      </div>
+      <datalist id="clients-dl"></datalist>
+      <form id="form" class="card hidden" novalidate>
+        <h2 id="form-title"></h2>
+        <p id="form-intro"></p>
+        <div id="fields"></div>
+        <div id="form-msg" aria-live="polite"></div>
+        <div class="row" style="margin-top:16px">
+          <button id="submit" type="submit">Send request</button>
+          <button id="reset" type="button" class="secondary">Clear</button>
+        </div>
+      </form>
+      <div id="result" class="hidden" aria-live="polite"></div>
+    </div>
+
+    <div id="pane-mine" class="hidden">
+      <div class="card">
+        <h2>My requests</h2>
+        <p><small>Shows requests sent from this Google account. A request is not a change to the rota until it says Approved and the rota has been updated.</small></p>
+        <div id="mine-list">Loading...</div>
+        <div class="row" style="margin-top:12px"><button id="refresh" class="secondary" type="button">Refresh</button></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script>
+const FORMS = {"forms": {"Office": [{"title": "Service-user name", "key": "clientName", "kind": "short", "required": true}, {"title": "Request category", "key": "category", "kind": "list:OFFICE_CATEGORY", "required": true}, {"title": "Who originally asked for this change?", "key": "communicatedBy", "kind": "short", "required": true}, {"title": "How was the request received?", "key": "source", "kind": "list:SOURCE", "required": true}, {"title": "Visit slot", "key": "slot", "kind": "list:SLOT", "required": false}, {"title": "Existing instruction ID (if known)", "key": "existingInstructionId", "kind": "short", "required": false}, {"title": "Existing visit date and time", "key": "existingVisit", "kind": "short", "required": false}, {"title": "Requested visit date and time (free text)", "key": "requestedVisit", "kind": "short", "required": false}, {"title": "Requested recurring weekdays (e.g. Mon, Thu, Fri)", "key": "weekdays", "kind": "short", "required": false}, {"title": "Requested visit time (HH:MM, 24 hour)", "key": "requestedTime", "kind": "short", "required": false}, {"title": "Carer restriction or preference (carer IDs, e.g. C012)", "key": "carerRestriction", "kind": "short", "required": false}, {"title": "Effective from", "key": "effFrom", "kind": "date", "required": false}, {"title": "Effective until (leave blank if open-ended)", "key": "effUntil", "kind": "date", "required": false}, {"title": "Reason for change", "key": "reason", "kind": "long", "required": false}, {"title": "Priority", "key": "priority", "kind": "list:PRIORITY", "required": true}, {"title": "Supporting evidence reference (message date, email subject, call note)", "key": "evidence", "kind": "short", "required": false}], "Carer": [{"title": "Your full name", "key": "carerName", "kind": "short", "required": true}, {"title": "Request category", "key": "category", "kind": "list:CARER_CATEGORY", "required": true}, {"title": "Affected service-user name (if any)", "key": "clientName", "kind": "short", "required": false}, {"title": "Existing allocated visit date", "key": "existingDate", "kind": "date", "required": false}, {"title": "Existing allocated visit time (HH:MM)", "key": "existingTime", "kind": "short", "required": false}, {"title": "Requested visit date", "key": "requestedDate", "kind": "date", "required": false}, {"title": "Requested visit time (HH:MM)", "key": "requestedTime", "kind": "short", "required": false}, {"title": "Unavailable from", "key": "unavailFrom", "kind": "date", "required": false}, {"title": "Unavailable to (leave blank for a single day)", "key": "unavailTo", "kind": "date", "required": false}, {"title": "Proposed replacement carer (suggestion only)", "key": "replacement", "kind": "short", "required": false}, {"title": "Proposed shift swap details", "key": "swapDetails", "kind": "long", "required": false}, {"title": "Reason for request", "key": "reason", "kind": "long", "required": false}, {"title": "Is this urgent?", "key": "urgency", "kind": "list:PRIORITY", "required": true}, {"title": "Anything else we should know?", "key": "notes", "kind": "long", "required": false}]}, "lists": {"SOURCE": ["WhatsApp", "Email", "Telephone", "Google Form", "In person", "Other"], "PRIORITY": ["Urgent", "High", "Normal", "Low"], "YESNO": ["Yes", "No"], "SLOT": ["Morning", "Lunch", "Tea", "Bed", "Other"], "OFFICE_CATEGORY": ["Visit time change (recurring)", "Visit time change (temporary)", "One-off visit variation", "Recurring visit days change", "New care package", "Client preference change", "Carer restriction (client)", "Cancellation of visits", "Reinstatement of visits", "Office-directed carer reallocation", "Correction to an instruction"], "CARER_CATEGORY": ["Change allocated visit time", "Swap shift or visit with another carer", "Report unavailability on a date", "Amend regular availability", "Annual leave request", "Report allocation conflict", "Request removal from or reassignment of a visit", "Report visit not feasible", "Correct apparent rota error", "Clarification about a published shift"], "APPROVAL": ["Pending", "Approved", "Rejected", "Not required"], "ROTA_UPDATE": ["Not started", "In progress", "Done", "Not required"], "COMMS": ["Not started", "Done", "Failed", "Not required"], "VERIFY": ["Not started", "Verified", "Failed", "Not required"], "STATUS": ["Submitted", "Awaiting Review", "Awaiting Approval", "Approved", "Rejected", "In Progress", "Awaiting Rota Update", "Awaiting Communication", "Awaiting Verification", "Completed", "Cancelled", "Escalated"], "ESC": ["None", "Reminder sent", "Escalated"], "IDENTITY": ["Verified account", "Matched register email", "Unverified"], "REGISTER": ["Office", "Carer", "Instruction", "Reconciliation", "Access check"], "ACTION_STATUS": ["Open", "In progress", "Done", "Blocked", "Cancelled"], "INSTR_CATEGORY": ["Recurring visit time", "Temporary change", "One-off variation", "Carer restriction", "Cancellation"], "INSTR_STATUS": ["Awaiting approval", "Future-dated", "Active", "Superseded", "Expired", "Cancelled"], "PACKAGE_STATUS": ["Pending start", "Active", "Suspended", "Ended"], "CARER_STATUS": ["Active", "On leave", "Inactive"], "RECON_STATUS": ["Not started", "Complete", "Issues found"], "NOTIF_STATUS": ["Sent", "Failed", "Test mode", "Skipped"], "FINDING": ["Verified", "Visit time differs from instruction", "Carer restriction breached", "Carer unavailable but allocated", "Unlogged change in Access", "Approved change not found in Access", "Unassigned visit", "Check could not run"], "SEVERITY": ["High", "Medium", "Low", "Info"], "ALERT_STATUS": ["Not alerted", "Alerted", "Alert failed", "Acknowledged"]}, "rules": {"Office": {"Visit time change (recurring)": ["clientName", "weekdays", "requestedTime", "effFrom", "slot"], "Visit time change (temporary)": ["clientName", "weekdays", "requestedTime", "effFrom", "effUntil", "slot"], "One-off visit variation": ["clientName", "requestedTime", "effFrom", "slot"], "Recurring visit days change": ["clientName", "weekdays", "effFrom", "slot", "existingInstructionId"], "New care package": ["clientName", "weekdays", "requestedTime", "effFrom", "slot"], "Client preference change": ["clientName", "reason"], "Carer restriction (client)": ["clientName", "carerRestriction", "effFrom"], "Cancellation of visits": ["clientName", "weekdays", "effFrom", "slot"], "Reinstatement of visits": ["clientName", "weekdays", "requestedTime", "effFrom", "slot"], "Office-directed carer reallocation": ["clientName", "effFrom", "reason"], "Correction to an instruction": ["clientName", "existingInstructionId", "reason"]}, "Carer": {"Change allocated visit time": ["clientName", "existingDate", "requestedTime", "reason"], "Swap shift or visit with another carer": ["existingDate", "swapDetails", "reason"], "Report unavailability on a date": ["unavailFrom", "reason"], "Amend regular availability": ["reason"], "Annual leave request": ["unavailFrom", "unavailTo"], "Report allocation conflict": ["reason"], "Request removal from or reassignment of a visit": ["clientName", "existingDate", "reason"], "Report visit not feasible": ["clientName", "existingDate", "reason"], "Correct apparent rota error": ["clientName", "existingDate", "reason"], "Clarification about a published shift": ["reason"]}}, "optional": {"Office": {"Visit time change (recurring)": ["effUntil", "existingInstructionId", "carerRestriction"], "Cancellation of visits": ["effUntil"], "Reinstatement of visits": ["existingInstructionId"], "New care package": ["carerRestriction"], "Client preference change": ["carerRestriction"], "Office-directed carer reallocation": ["slot", "carerRestriction"], "Recurring visit days change": ["requestedTime", "effUntil"], "Correction to an instruction": ["weekdays", "requestedTime", "effFrom", "effUntil", "slot"]}, "Carer": {"Change allocated visit time": ["existingTime", "requestedDate"], "Swap shift or visit with another carer": ["clientName", "existingTime", "replacement"], "Report unavailability on a date": ["unavailTo"], "Amend regular availability": ["unavailFrom", "unavailTo"], "Report allocation conflict": ["clientName", "existingDate"], "Request removal from or reassignment of a visit": ["replacement"], "Clarification about a published shift": ["clientName", "existingDate"]}}, "always": {"Office": ["clientName", "category", "priority", "communicatedBy", "source", "reason", "evidence"], "Carer": ["carerName", "category", "urgency", "notes"]}};
+const CFG = window.APP_CONFIG || {};
+const DEMO = new URLSearchParams(location.search).get('demo') === '1';
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const TIME_KEYS = ['requestedTime','existingTime'];
+let token = '', session = null, register = '', category = '';
+
+const $ = id => document.getElementById(id);
+const el = (tag, attrs, ...kids) => { const e = document.createElement(tag); Object.entries(attrs || {}).forEach(([k, v]) => { if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v; else if (v !== false && v !== null && v !== undefined) e.setAttribute(k, v); }); kids.flat().forEach(k => e.append(k)); return e; };
+function banner(text, kind) { const b = $('banner'); b.className = 'msg ' + (kind || 'warn'); b.textContent = text; b.classList.toggle('hidden', !text); }
+
+// ------------------------------------------------------------------ API
+async function api(body) {
+  if (DEMO) return demoApi(body);
+  const res = await fetch(CFG.apiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ idToken: token }, body)), redirect: 'follow' });
+  if (!res.ok) throw new Error('The server could not be reached (' + res.status + ').');
+  return res.json();
+}
+function demoApi(body) {
+  if (body.action === 'whoami') return { ok: true, email: 'preview@example.com', office: true, carerName: 'Demo Carer' };
+  if (body.action === 'lookups') return { ok: true, clients: ['Alice Example', 'Bob Sample'], carers: ['Demo Carer'] };
+  if (body.action === 'myRequests') return { ok: true, requests: [{ id: 'CAR-000001', register: 'Carer', category: 'Annual leave request', submitted: '2026-10-19', status: 'Awaiting Approval', decision: 'Waiting for a decision' }] };
+  return { ok: true, id: 'PREVIEW-000001', status: 'Awaiting Approval', duplicateOf: '', preview: true };
+}
+
+// ------------------------------------------------------------------ sign-in
+function onCredential(resp) { token = resp.credential; start(); }
+async function start() {
+  banner('');
+  try {
+    const r = await api({ action: 'whoami' });
+    if (!r.ok) { banner(r.error || 'Sign-in failed.', 'bad'); return; }
+    session = r;
+    $('who').textContent = r.carerName || r.email;
+    $('role').textContent = (r.office ? 'Office staff: you can send office and carer requests' : (r.carerName ? 'Signed in as ' + r.email : 'You can send carer requests'));
+    if (!r.office && !r.carerName) banner('Your email address is not on the carer list, so a request may not be matched to you. Ask the office to add it.', 'warn');
+    if (r.office) {
+      const l = await api({ action: 'lookups' });
+      if (l.ok) { const dl = $('clients-dl'); dl.textContent = ''; l.clients.forEach(n => dl.append(el('option', { value: n }))); }
+    }
+    $('signin').classList.add('hidden'); $('app').classList.remove('hidden');
+    buildKindButtons();
+  } catch (e) { banner(String(e.message || e), 'bad'); }
+}
+function signOut() { token = ''; session = null; if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); location.reload(); }
+
+function initGoogle() {
+  if (DEMO) { $('demo-note').classList.remove('hidden'); $('demo-go').onclick = () => { token = 'demo'; start(); }; return; }
+  if (!CFG.apiUrl || !CFG.googleClientId) { banner('This form is not connected yet. Ask Rashid to finish setting it up.', 'warn'); return; }
+  const wait = () => {
+    if (!(window.google && google.accounts && google.accounts.id)) { setTimeout(wait, 150); return; }
+    google.accounts.id.initialize({ client_id: CFG.googleClientId, callback: onCredential, auto_select: false });
+    google.accounts.id.renderButton($('gbtn'), { theme: 'outline', size: 'large', text: 'signin_with', width: 260 });
+  };
+  const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true; s.defer = true; document.head.append(s); wait();
+}
+
+// ------------------------------------------------------------------ form
+function buildKindButtons() {
+  const row = $('kind-row'); row.textContent = '';
+  const kinds = [];
+  if (session.office) kinds.push(['Office', 'A client or office change']);
+  kinds.push(['Carer', 'My own shifts, visits or availability']);
+  kinds.forEach(([k, label]) => row.append(el('button', { type: 'button', text: label, class: 'secondary', onclick: null }))) ;
+  [...row.children].forEach((b, i) => b.addEventListener('click', () => chooseKind(kinds[i][0])));
+  if (kinds.length === 1) chooseKind(kinds[0][0]);
+}
+function chooseKind(k) {
+  register = k; category = '';
+  $('kind-card').classList.add('hidden'); $('result').classList.add('hidden');
+  $('form').classList.remove('hidden');
+  $('form-title').textContent = k === 'Office' ? 'Office rota change request' : 'My rota request';
+  $('form-intro').textContent = k === 'Office'
+    ? 'Use the service-user ID. Do not type names or health details.'
+    : 'Sending a request does not change your rota. You will be told when a decision is made. If it affects a visit in the next 48 hours, phone the office as well.';
+  renderFields();
+}
+function defs() { return FORMS.forms[register]; }
+function defByKey(k) { return defs().find(d => d.key === k); }
+function visibleKeys() {
+  const always = FORMS.always[register];
+  const need = (FORMS.rules[register] && FORMS.rules[register][category]) || [];
+  const opt = (FORMS.optional[register] && FORMS.optional[register][category]) || [];
+  const set = new Set(category ? always.concat(need, opt) : ['category']);
+  return defs().map(d => d.key).filter(k => set.has(k) && !(register === 'Carer' && k === 'carerName'));
+}
+function isRequired(k) {
+  const d = defByKey(k);
+  const need = (FORMS.rules[register] && FORMS.rules[register][category]) || [];
+  return !!(d && d.required) || need.indexOf(k) >= 0;
+}
+function renderFields() {
+  const keep = {}; [...document.querySelectorAll('#fields [data-key]')].forEach(n => { keep[n.dataset.key] = readValue(n); });
+  const box = $('fields'); box.textContent = '';
+  visibleKeys().forEach(k => {
+    const d = defByKey(k);
+    const id = 'f-' + k;
+    const label = el('label', { for: id }, d.title.replace(/ \(.*\)$/, ''), isRequired(k) ? el('span', { class: 'req', 'aria-hidden': 'true', text: ' *' }) : '');
+    const hint = (d.title.match(/\((.*)\)$/) || [])[1];
+    if (hint && !(isRequired(k) && /leave blank/i.test(hint))) label.append(el('span', { class: 'hint', text: ' ' + hint }));
+    let input;
+    if (k === 'weekdays') {
+      input = el('div', { class: 'days', 'data-key': k, id, role: 'group', 'aria-label': 'Weekdays' });
+      DAYS.forEach(day => input.append(el('label', {}, el('input', { type: 'checkbox', value: day }), day)));
+    } else if (d.kind.startsWith('list:')) {
+      input = el('select', { id, 'data-key': k }, el('option', { value: '', text: 'Choose...' }), ...FORMS.lists[d.kind.slice(5)].map(v => el('option', { value: v, text: v })));
+    } else if (d.kind === 'long') input = el('textarea', { id, 'data-key': k, maxlength: 2000 });
+    else if (d.kind === 'date') input = el('input', { type: 'date', id, 'data-key': k });
+    else if (TIME_KEYS.indexOf(k) >= 0) input = el('input', { type: 'time', id, 'data-key': k });
+    else if (k === 'clientName' && register === 'Office') input = el('input', { type: 'text', id, 'data-key': k, maxlength: 200, autocomplete: 'off', list: 'clients-dl', placeholder: 'Start typing the name' });
+    else input = el('input', { type: 'text', id, 'data-key': k, maxlength: 200, autocomplete: 'off' });
+    box.append(label, input, el('div', { class: 'err hidden', id: 'e-' + k, role: 'alert' }));
+    if (keep[k] !== undefined) writeValue(input, keep[k]);
+  });
+  const cat = $('f-category');
+  if (cat) { cat.value = category; cat.onchange = () => { category = cat.value; renderFields(); }; }
+}
+function readValue(n) {
+  if (n.dataset.key === 'weekdays') return [...n.querySelectorAll('input:checked')].map(i => i.value).join(', ');
+  return (n.value || '').trim();
+}
+function writeValue(n, v) {
+  if (n.dataset.key === 'weekdays') { const set = (v || '').split(/[\s,]+/); n.querySelectorAll('input').forEach(i => { i.checked = set.indexOf(i.value) >= 0; }); } else n.value = v;
+}
+function collect() { const f = {}; document.querySelectorAll('#fields [data-key]').forEach(n => { f[n.dataset.key] = readValue(n); }); return f; }
+function validate(f) {
+  document.querySelectorAll('.err').forEach(e => { e.textContent = ''; e.classList.add('hidden'); });
+  let first = null;
+  visibleKeys().forEach(k => {
+    const bad = (isRequired(k) && !f[k]) ? 'This is needed.' : '';
+    let msg = bad;
+    if (!msg && f.effFrom && f.effUntil && k === 'effUntil' && f.effUntil < f.effFrom) msg = 'The end date is before the start date.';
+    if (!msg && f.unavailFrom && f.unavailTo && k === 'unavailTo' && f.unavailTo < f.unavailFrom) msg = 'The end date is before the start date.';
+    if (msg) { const e = $('e-' + k); if (e) { e.textContent = msg; e.classList.remove('hidden'); } if (!first) first = k; }
+  });
+  if (first) { const n = $('f-' + first); if (n) (n.querySelector ? (n.querySelector('input') || n) : n).focus(); }
+  return !first;
+}
+$('form').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  if (!category) { const e = $('e-category'); if (e) { e.textContent = 'Choose what this is about.'; e.classList.remove('hidden'); } return; }
+  const f = collect();
+  if (!validate(f)) return;
+  const btn = $('submit'); btn.disabled = true; btn.textContent = 'Sending...'; $('form-msg').textContent = '';
+  try {
+    const r = await api({ action: 'submit', register, fields: f });
+    if (!r.ok) { $('form-msg').replaceChildren(el('div', { class: 'msg bad', text: r.error || 'Could not send.' })); return; }
+    showResult(r);
+  } catch (e) {
+    $('form-msg').replaceChildren(el('div', { class: 'msg bad', text: 'Could not send. ' + (e.message || '') + ' Check your connection and try again. If this keeps happening, tell the office.' }));
+  } finally { btn.disabled = false; btn.textContent = 'Send request'; }
+});
+function showResult(r) {
+  $('form').classList.add('hidden');
+  const incomplete = r.status === 'Submitted';
+  const box = $('result'); box.className = ''; box.textContent = '';
+  const lines = [el('h2', { text: r.duplicateOf ? 'Already logged' : (incomplete ? 'Received, but something is missing' : 'Request sent') }), el('p', {}, 'Reference: ', el('strong', { text: r.id }))];
+  if (r.duplicateOf) lines.push(el('p', { text: 'The same request is already open as ' + r.duplicateOf + '. Nothing more is needed.' }));
+  else if (incomplete) lines.push(el('p', { text: 'The office has been told and will contact you for the missing details.' }));
+  else lines.push(el('p', { text: register === 'Carer' ? 'It has gone to the right person for a decision. It does not change your rota until you are told it is approved.' : 'Khubaib and the approver have been told.' }));
+  if (r.preview) lines.push(el('p', {}, el('small', { text: 'Preview mode: nothing was actually sent.' })));
+  lines.push(el('div', { class: 'row' }, el('button', { type: 'button', text: 'Send another', onclick: () => { box.classList.add('hidden'); $('kind-card').classList.remove('hidden'); buildKindButtons(); } }),
+    el('button', { type: 'button', class: 'secondary', text: 'See my requests', onclick: () => showTab('mine') })));
+  box.append(el('div', { class: 'card msg ' + (incomplete ? 'warn' : 'ok') }, ...lines));
+  box.focus();
+}
+$('reset').onclick = () => { category = ''; renderFields(); $('form-msg').textContent = ''; };
+
+// ------------------------------------------------------------------ my requests
+async function loadMine() {
+  const box = $('mine-list'); box.textContent = 'Loading...';
+  try {
+    const r = await api({ action: 'myRequests' });
+    if (!r.ok) { box.textContent = r.error || 'Could not load.'; return; }
+    if (!r.requests.length) { box.textContent = 'No requests from this account yet.'; return; }
+    const tbl = el('table', {}, el('thead', {}, el('tr', {}, ...['Reference', 'About', 'Sent', 'Status', 'Decision'].map(h => el('th', { text: h })))),
+      el('tbody', {}, ...r.requests.map(q => el('tr', {}, el('td', { text: q.id }), el('td', { text: q.category }), el('td', { text: q.submitted }), el('td', {}, el('span', { class: 'pill', text: q.status })), el('td', { text: q.decision })))));
+    box.replaceChildren(tbl);
+  } catch (e) { box.textContent = 'Could not load. ' + (e.message || ''); }
+}
+function showTab(which) {
+  const mine = which === 'mine';
+  $('tab-new').setAttribute('aria-selected', String(!mine)); $('tab-mine').setAttribute('aria-selected', String(mine));
+  $('pane-new').classList.toggle('hidden', mine); $('pane-mine').classList.toggle('hidden', !mine);
+  if (mine) loadMine();
+}
+$('tab-new').onclick = () => showTab('new'); $('tab-mine').onclick = () => showTab('mine');
+$('refresh').onclick = loadMine; $('signout').onclick = signOut;
+initGoogle();
+</script>
+</body>
+</html>
