@@ -54,7 +54,7 @@ details summary{cursor:pointer;font-weight:600}
     <h2>Sign in</h2>
     <p>Sign in with your Google account so we know who the request is from. We only use your email address to check who you are.</p>
     <div id="gbtn"></div>
-    <p><small>Never type names, addresses or health details into this form. Use the service-user ID.</small></p>
+    <p><small>Do not type addresses, phone numbers or health details into this form. Service users are identified by name only.</small></p>
     <p id="demo-note" class="hidden"><small>Preview mode: nothing is sent.</small> <button id="demo-go" class="secondary" type="button">Continue in preview</button></p>
   </section>
 
@@ -173,7 +173,7 @@ function chooseKind(k) {
   $('form').classList.remove('hidden');
   $('form-title').textContent = k === 'Office' ? 'Office rota change request' : 'My rota request';
   $('form-intro').textContent = k === 'Office'
-    ? 'Use the service-user ID. Do not type names or health details.'
+    ? 'Pick the service user by name from the list. Do not type addresses, phone numbers or health details.'
     : 'Sending a request does not change your rota. You will be told when a decision is made. If it affects a visit in the next 48 hours, phone the office as well.';
   renderFields();
 }
@@ -292,3 +292,5 @@ initGoogle();
 </script>
 </body>
 </html>
+
+
